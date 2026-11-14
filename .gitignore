@@ -1,0 +1,6 @@
+__pycache__/
+.vscode/
+EngineMaking/
+
+LunaTrace/*
+!LunaTrace/__init__.py
