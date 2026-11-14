@@ -12,6 +12,9 @@ export default function LunarMap() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // 1. Add state to hold the fetched elevation from the backend
+  const [elevation, setElevation] = useState(null);
+
   const [activeSite, setActiveSite] = useState({
     name: 'Shackleton Rim (Selected Target)',
     lat: -89.9,
@@ -31,6 +34,27 @@ export default function LunarMap() {
   const imgRef = useRef(null);
 
   const MAX_RADIUS_PCT = 41.5;
+
+  // 2. Create the async fetch function to communicate with Flask backend
+  const fetchElevation = async (lat, lng) => {
+    try {
+      const response = await fetch('http://localhost:5000/get-elevation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        setElevation(data.elevation);
+      }
+    } catch (error) {
+      console.error('Error fetching elevation from backend:', error);
+      setElevation(null);
+    }
+  };
 
   const coordsToPercent = (lat, lng) => {
     const poleDistRatio = (lat + 90) / 3; 
@@ -108,6 +132,9 @@ export default function LunarMap() {
       slope: `${(Math.random() * 3 + 2).toFixed(1)}°`,
       notes: 'SPICE Mean Earth coordinate point inspection.'
     });
+
+    // 3. Trigger backend call on map click
+    fetchElevation(coords.lat, coords.lng);
   };
 
   const handleFlyTo = (e) => {
@@ -133,6 +160,9 @@ export default function LunarMap() {
       slope: '3.8°',
       notes: 'Targeted via SPICE Mean Earth frame engine.'
     });
+
+    // 4. Trigger backend call on Fly To submit
+    fetchElevation(latNum, lngNum);
   };
 
   return (
@@ -175,7 +205,6 @@ export default function LunarMap() {
             style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', userSelect: 'none', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)', cursor: 'crosshair' }}
           />
 
-          {/* Dynamically Scaled Precision Target Pointer */}
           <div style={{
             position: 'absolute',
             top: `${pinPos.yPct}%`,
@@ -223,6 +252,13 @@ export default function LunarMap() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '13px' }}>Elevation (LOLA)</span>
+              {/* 5. Display the live elevation data */}
+              <span style={{ color: '#fbbf24', fontWeight: 'bold', fontSize: '13px' }}>
+                {elevation !== null ? `${Number(elevation).toFixed(2)} m` : 'Loading...'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Solar Illumination</span>
               <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '13px' }}>{activeSite.sunlight}</span>
             </div>
@@ -253,6 +289,8 @@ export default function LunarMap() {
                     const { xPct, yPct } = coordsToPercent(site.lat, site.lng);
                     setPinPos({ xPct, yPct });
                     setErrorMsg('');
+                    // 6. Trigger backend call on preset selection
+                    fetchElevation(site.lat, site.lng);
                   }}
                   style={{ background: '#1e293b', border: '1px solid #334155', color: '#e2e8f0', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
                 >
