@@ -11,15 +11,17 @@ def get_elevation():
     long = float(data.get('longitude'))
     
     # Unpack the tuple, assigning np.array([x,y,z]) and np.array([row,col]) to underscore variables
-    _, _, elev_m = getMoonState(lat, long)
+    _, _, elev_m, slop_deg = getMoonState(lat, long)
     
     # Store elev_m in another variable to be used for display
-    elevation = elev_m
+    elevation = float(elev_m)
+    slop=float(slop_deg)
     
     # Return the elevation parameter to the frontend
     return jsonify({
         'status': 'success',
         'latitude': lat,
         'longitude': long,
-        'elevation': elevation
+        'elevation': elevation,
+        'slope':slop
     })

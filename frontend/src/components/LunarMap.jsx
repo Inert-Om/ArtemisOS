@@ -12,8 +12,9 @@ export default function LunarMap() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // 1. Add state to hold the fetched elevation from the backend
+  // 1. Add state to hold elevation and slope from the backend
   const [elevation, setElevation] = useState(null);
+  const [slope, setSlope] = useState(null);
 
   const [activeSite, setActiveSite] = useState({
     name: 'Shackleton Rim (Selected Target)',
@@ -35,8 +36,8 @@ export default function LunarMap() {
 
   const MAX_RADIUS_PCT = 41.5;
 
-  // 2. Create the async fetch function to communicate with Flask backend
-  const fetchElevation = async (lat, lng) => {
+  // 2. Update fetch function to capture both elevation and slope
+  const fetchElevationAndSlope = async (lat, lng) => {
     try {
       const response = await fetch('http://localhost:5000/get-elevation', {
         method: 'POST',
@@ -49,10 +50,12 @@ export default function LunarMap() {
       const data = await response.json();
       if (data.status === 'success') {
         setElevation(data.elevation);
+        setSlope(data.slope);
       }
     } catch (error) {
-      console.error('Error fetching elevation from backend:', error);
+      console.error('Error fetching telemetry from backend:', error);
       setElevation(null);
+      setSlope(null);
     }
   };
 
@@ -129,12 +132,12 @@ export default function LunarMap() {
       lng: coords.lng,
       sunlight: '82%',
       dte: 'Line-of-Sight Verified',
-      slope: `${(Math.random() * 3 + 2).toFixed(1)}°`,
+      slope: 'Calculated via backend...',
       notes: 'SPICE Mean Earth coordinate point inspection.'
     });
 
-    // 3. Trigger backend call on map click
-    fetchElevation(coords.lat, coords.lng);
+    // Trigger backend call on map click
+    fetchElevationAndSlope(coords.lat, coords.lng);
   };
 
   const handleFlyTo = (e) => {
@@ -157,12 +160,12 @@ export default function LunarMap() {
       lng: lngNum,
       sunlight: '84%',
       dte: 'Direct Line-of-Sight',
-      slope: '3.8°',
+      slope: 'Calculated via backend...',
       notes: 'Targeted via SPICE Mean Earth frame engine.'
     });
 
-    // 4. Trigger backend call on Fly To submit
-    fetchElevation(latNum, lngNum);
+    // Trigger backend call on Fly To submit
+    fetchElevationAndSlope(latNum, lngNum);
   };
 
   return (
@@ -253,7 +256,6 @@ export default function LunarMap() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Elevation (LOLA)</span>
-              {/* 5. Display the live elevation data */}
               <span style={{ color: '#fbbf24', fontWeight: 'bold', fontSize: '13px' }}>
                 {elevation !== null ? `${Number(elevation).toFixed(2)} m` : 'Loading...'}
               </span>
@@ -268,7 +270,10 @@ export default function LunarMap() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Terrain Slope Hazard</span>
-              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '13px' }}>{activeSite.slope}</span>
+              {/* 3. Display the live calculated slope data */}
+              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '13px' }}>
+                {slope !== null ? `${Number(slope).toFixed(2)}°` : activeSite.slope}
+              </span>
             </div>
           </div>
 
@@ -289,8 +294,8 @@ export default function LunarMap() {
                     const { xPct, yPct } = coordsToPercent(site.lat, site.lng);
                     setPinPos({ xPct, yPct });
                     setErrorMsg('');
-                    // 6. Trigger backend call on preset selection
-                    fetchElevation(site.lat, site.lng);
+                    // Trigger backend call on preset selection
+                    fetchElevationAndSlope(site.lat, site.lng);
                   }}
                   style={{ background: '#1e293b', border: '1px solid #334155', color: '#e2e8f0', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
                 >
