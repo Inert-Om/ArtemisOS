@@ -20,9 +20,13 @@ transformer = Transformer.from_crs(moon_geo_crs, dem_crs, always_xy=True)
 # Function to get cartesian coordinates, elevation row and column and elevation in mt
 def getMoonState(lat, long):
     x_proj, y_proj = transformer.transform(long, lat)
-    
     row, col = rowcol(dem_transform, x_proj, y_proj)
-    
+
+    patch = elevation_grid[max(0,row-1) : min(row+2, elevation_grid.shape[0]), max(0, col-1) : min(col+2, elevation_grid.shape[1])]
+    gy, gx = np.gradient(patch)
+    local_r, local_c = min(1, row), min(1, col)
+    slope_deg = np.degrees(np.arctan(np.hypot(gy[local_r,local_c], gx[local_r,local_c])))
+
     elev_m = float(elevation_grid[row, col])
     r_km = 1737.4 + (elev_m / 1000.0)
     
@@ -33,7 +37,7 @@ def getMoonState(lat, long):
     y = r_km * np.cos(phi_rad) * np.sin(lamb_rad)
     z = r_km * np.sin(phi_rad)
     
-    return np.array([x, y, z]), np.array([row, col]), elev_m
+    return np.array([x, y, z]), np.array([row, col]), elev_m, slope_deg
 
 
 # takes start, endtime and freq as input, processes time and calculates cartesian coordinates of sun and earth wrt to moon and returns the dataframe
@@ -87,7 +91,7 @@ def findTheta(positionVector, vectors):
 # Calculate vectors relative to position on moon
 def calcRVect(lat, long, df):
     df1 = df.copy()
-    pos_vector, rc, elev_m = getMoonState(lat, long)
+    pos_vector, _, _, _ = getMoonState(lat, long)
     X, Y, Z = pos_vector
     df1['PSX'] = df['SX'] - X
     df1['PSY'] = df['SY'] - Y
@@ -107,7 +111,7 @@ def calcRVect(lat, long, df):
 
 # Calculate critical angle for each position of sun
 def getCritAngle(phi, lamb, objXYZ, elevation_grid, dem_transform, step=5, maxdist=30000, R_moon=1737400.0):
-    U, obsRC, obs_elev = getMoonState(phi, lamb)
+    U, obsRC, obs_elev, _ = getMoonState(phi, lamb)
     U = U * 1000.0
     objXYZ = objXYZ * 1000.0  # shape: (N, 3)
 
