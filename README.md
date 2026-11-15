@@ -21,6 +21,12 @@
 
 ---
 
+## User Interface
+<img width="1280" height="720" alt="Slide4" src="https://github.com/user-attachments/assets/9873f1ad-d73f-4dad-81f1-95000cc94214" />
+<img width="1280" height="720" alt="Slide5" src="https://github.com/user-attachments/assets/2d37b9a3-6bb6-4d2b-aa40-7e876fbc5031" />
+
+---
+
 ## Tech Stack
 
 * **Frontend**: React, Vite, HTML5/CSS3
