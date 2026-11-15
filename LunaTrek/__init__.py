@@ -150,7 +150,7 @@ def calcRVect(lat, long, df):
 
 
 # Calculate critical angle for each position of sun
-def getCritAngle(phi, lamb, objXYZ, elevation_grid, dem_transform, step=5, maxdist=30000, R_moon=1737400.0):
+def getCritAzimuthalAngle(phi, lamb, objXYZ, elevation_grid, dem_transform, step=5, maxdist=30000, R_moon=1737400.0):
     U, obsRC, obs_elev, _ = getMoonState(phi, lamb)
     U = U * 1000.0
     objXYZ = objXYZ * 1000.0  # shape: (N, 3)
@@ -204,7 +204,7 @@ def getCritAngle(phi, lamb, objXYZ, elevation_grid, dem_transform, step=5, maxdi
     theta = np.where(valid, theta, -np.inf)
     maxTheta = np.maximum(np.max(theta, axis=1), 0.0)
 
-    return maxTheta
+    return maxTheta, np.degrees(azimuth)
 
 def get360profile(phi, lamb, elevation_grid=elevation_grid, dem_transform=dem_transform, step=5, maxdist=30000, R_moon=1737400.0):
     angles_deg = np.arange(0, 361, 1)  # 0 to 360 inclusive so the 3D surface closes cleanly
