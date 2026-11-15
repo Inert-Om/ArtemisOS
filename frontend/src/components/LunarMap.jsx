@@ -40,6 +40,7 @@ export default function LunarMap() {
   const [critProfileImage, setCritProfileImage] = useState(null);
   const [isCritModalOpen, setIsCritModalOpen] = useState(false);
   const [loadingCritProfile, setLoadingCritProfile] = useState(false);
+  
 
   const [activeSite, setActiveSite] = useState({
     name: 'ArtemisOS',
@@ -235,7 +236,7 @@ export default function LunarMap() {
         style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <div style={{ position: 'absolute', top: '20px', left: '20px', background: 'rgba(15, 23, 42, 0.9)', padding: '12px 18px', borderRadius: '8px', border: '1px solid #334155', zIndex: 10, pointerEvents: 'none' }}>
-          <h2 style={{ margin: 0, fontSize: '15px', color: '#fbbf24' }}>ArtemisOS: LunaTrek Engine</h2>
+          <h2 style={{ fontFamily: "Zalando Sans Expanded, sans-serif", margin: 0, fontSize: '15px', color: '#fbbf24' }}>ArtemisOS: LunaTrek Engine</h2>
           <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#94a3b8', fontFamily: "Cascadia Code, sans-serif" }}>SCROLL TO ZOOM // CLICK & DRAG TO PAN // CLICK MAP TO INSPECT</p>
         </div>
 
@@ -386,7 +387,7 @@ export default function LunarMap() {
                       <th style={{ padding: '4px' }}>End</th>
                       <th style={{ padding: '4px' }}>Dur(h)</th>
                       <th style={{ padding: '4px' }}>Earth%</th>
-                      <th style={{ padding: '4px' }}>Score</th>
+                      {/* <th style={{ padding: '4px' }}>Score</th> */}
                     </tr>
                   </thead>
                   <tbody>
@@ -396,7 +397,7 @@ export default function LunarMap() {
                         <td style={{ padding: '4px' }}>{win.end_time?.replace('T', ' ').substring(0, 16)}</td>
                         <td style={{ padding: '4px' }}>{win.duration_s}</td>
                         <td style={{ padding: '4px' }}>{win.earth_comms_percentage}%</td>
-                        <td style={{ padding: '4px' }}>{win.composite_score}</td>
+                        {/* <td style={{ padding: '4px' }}>{win.composite_score}</td> */}
                       </tr>
                     ))}
                   </tbody>
