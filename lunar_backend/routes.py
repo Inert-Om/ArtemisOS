@@ -35,7 +35,7 @@ def get_elevation():
     windows_df, sunlight_ratio = findOptimalDatesNShadowPercent(df_time)
     solar_illumination = round(sunlight_ratio * 100.0, 2)
     landing_windows = windows_df.to_dict(orient='records') if not windows_df.empty else []
-    water_possibility = 1 if solar_illumination==100 else 0
+    water_possibility = 1 if solar_illumination==0 else 0
     
     return jsonify({
         'status': 'success',

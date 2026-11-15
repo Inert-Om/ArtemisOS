@@ -374,6 +374,8 @@ export default function LunarMap() {
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Water Ice Possibility</span>
               <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>
                 {waterPossibility !== null ? (waterPossibility === 1 ? 'High (Shadowed)' : 'Low (Illuminated)') : 'Loading...'}
+                {/* {waterPossibility !== null ? `${waterPossibility}%` : 'Loading...'} */}
+
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
