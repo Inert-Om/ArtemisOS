@@ -243,15 +243,15 @@ def findOptimalDatesNShadowPercent(df):
         if not group['SPOV'].iloc[0]:
             continue
 
-        starttime = datetime.fromisoformat(group['datetime_utc'].iloc[0])
-        endtime = datetime.fromisoformat(group['datetime_utc'].iloc[-1])
+        starttime = datetime.fromisoformat(group['iso_utc_str'].iloc[0])
+        endtime = datetime.fromisoformat(group['iso_utc_str'].iloc[-1])
         num_steps = len(group)
         duration_s = endtime - starttime
 
         earth_visible = group['EPOV'].sum()
         earth_visible_ratio = earth_visible / num_steps if num_steps > 0 else 0.0
 
-        composite_score = duration_s/3600 * (0.5 + (0,5 * earth_visible_ratio))
+        composite_score = duration_s/3600 * (0.5 + (0.5 * earth_visible_ratio))
 
         windows.append({
             'start_time': starttime,
@@ -264,5 +264,5 @@ def findOptimalDatesNShadowPercent(df):
     windows_df = pd.DataFrame(windows)
     if windows_df.empty:
         return windows_df, 1.0
-    windows_df = windows_df.sort_values(by=['composite_score', 'duration_hours'], ascending=False)
+    windows_df = windows_df.sort_values(by=['composite_score', 'duration_s'], ascending=False)
     return windows_df, sunlight_ratio
