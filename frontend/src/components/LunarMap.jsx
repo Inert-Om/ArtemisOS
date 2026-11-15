@@ -22,6 +22,7 @@ export default function LunarMap() {
   const [solarIllumination, setSolarIllumination] = useState(null);
   const [waterPossibility, setWaterPossibility] = useState(null);
 
+  const [loadingTelemetry, setLoadingTelemetry] = useState(false);
   const [landingWindows, setLandingWindows] = useState([]);
 
   // 3D Topography Modal States
@@ -67,6 +68,7 @@ export default function LunarMap() {
   };
 
   const fetchElevationAndSlope = async (lat, lng) => {
+    setLoadingTelemetry(true);
     try {
       const response = await fetch('http://localhost:5000/get-elevation', {
         method: 'POST',
@@ -88,6 +90,8 @@ export default function LunarMap() {
       }
     } catch (error) {
       console.error('Error fetching telemetry:', error);
+    } finally {
+      setLoadingTelemetry(false);
     }
   };
 
@@ -387,9 +391,14 @@ export default function LunarMap() {
           </div>
 
           {/* Scrollable Landing Windows Table */}
-          {landingWindows.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontFamily: "Cascadia Code, sans-serif" }}>Optimal Landing Windows:</span>
+          <div style={{ marginTop: '20px' }}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontFamily: "Cascadia Code, sans-serif" }}>Optimal Landing Windows:</span>
+            
+            {loadingTelemetry ? (
+              <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', textAlign: 'center', fontSize: '11px', color: '#38bdf8', fontFamily: "Cascadia Code, sans-serif" }}>
+                Calculating optimal landing windows...
+              </div>
+            ) : landingWindows.length > 0 ? (
               <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #334155', borderRadius: '8px', background: '#1e293b', padding: '6px' }}>
                 <table style={{ width: '100%', fontSize: '10px', color: '#f8fafc', borderCollapse: 'collapse', fontFamily: "Cascadia Code, sans-serif" }}>
                   <thead>
@@ -398,7 +407,6 @@ export default function LunarMap() {
                       <th style={{ padding: '4px' }}>End</th>
                       <th style={{ padding: '4px' }}>Dur(h)</th>
                       <th style={{ padding: '4px' }}>Earth%</th>
-                      {/* <th style={{ padding: '4px' }}>Score</th> */}
                     </tr>
                   </thead>
                   <tbody>
@@ -408,14 +416,17 @@ export default function LunarMap() {
                         <td style={{ padding: '4px' }}>{win.end_time?.replace('T', ' ').substring(0, 16)}</td>
                         <td style={{ padding: '4px' }}>{win.duration_s}</td>
                         <td style={{ padding: '4px' }}>{win.earth_comms_percentage}%</td>
-                        {/* <td style={{ padding: '4px' }}>{win.composite_score}</td> */}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            ) : (
+              <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', textAlign: 'center', fontSize: '11px', color: '#ef4444', fontFamily: "Cascadia Code, sans-serif" }}>
+                No optimal landing site found for this range.
+              </div>
+            )}
+          </div>
 
           <div style={{ marginTop: '20px' }}>
             <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontFamily: "Cascadia Code, sans-serif"}}>Preset Sites:</span>
