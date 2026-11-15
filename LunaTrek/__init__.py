@@ -205,3 +205,43 @@ def getCritAngle(phi, lamb, objXYZ, elevation_grid, dem_transform, step=5, maxdi
     maxTheta = np.maximum(np.max(theta, axis=1), 0.0)
 
     return maxTheta
+
+def get360profile(phi, lamb, elevation_grid=elevation_grid, dem_transform=dem_transform, step=5, maxdist=30000, R_moon=1737400.0):
+    angles_deg = np.arange(0, 361, 1)  # 0 to 360 inclusive so the 3D surface closes cleanly
+    angles_rad = np.deg2rad(angles_deg)
+    U, obsRC, obs_elev, _ = getMoonState(phi, lamb)
+    theta_map = np.deg2rad(90.0 - lamb) - angles_rad  # shape: (N,)
+
+    # Observer pixel to map coordinates
+    obs_r, obs_c = obsRC
+    X, Y = dem_transform * (obs_c, obs_r)
+
+    # Create 2D grid of (N timestamps, M distances) via broadcasting
+    distances = np.arange(step, maxdist, step)     # shape: (M,)
+    
+    x = X + distances[None, :] * np.cos(theta_map[:, None])  # shape: (N, M)
+    y = Y + distances[None, :] * np.sin(theta_map[:, None])  # shape: (N, M)
+
+    # Convert map (x, y) to pixel (c, r)
+    inv_transform = ~dem_transform
+    c, r = inv_transform * (x, y)
+    r = np.rint(r).astype(int)
+    c = np.rint(c).astype(int)
+
+    # Check bounds for both r and c
+    H, W = elevation_grid.shape
+
+    # Clip indices safely to sample, then mask out-of-bounds with -inf
+    r_safe = np.clip(r, 0, H - 1)
+    c_safe = np.clip(c, 0, W - 1)
+    elev = elevation_grid[r_safe, c_safe]          # shape: (N, M)
+
+    # Effective elevation accounting for lunar curvature
+    eleveff = elev - (distances[None, :] ** 2) / (2.0 * R_moon)
+    theta = np.degrees(np.arctan2(eleveff - obs_elev, distances[None, :]))
+
+    DIST, AZ = np.meshgrid(distances, angles_rad)
+    X_east = DIST * np.sin(AZ)   # Keep in meters for local crater scale
+    Y_north = DIST * np.cos(AZ)
+
+    return X_east, Y_north, eleveff 
