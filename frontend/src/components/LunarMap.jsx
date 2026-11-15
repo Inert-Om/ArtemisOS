@@ -8,6 +8,7 @@ const PRESET_SITES = [
   { name: "Shoemaker", lat:-88.10, lng: 44.90 },
   { name: "Moon Impact Probe (MIP), Chandrayaan 1", lat:-89.76, lng: 122.93 },
   { name: "Lunar Prospector (1998)", lat:-87.70, lng: 42.1 },
+  { name: "Faustini", lat:-87.30, lng: 77.00 },
 ];
 
 export default function LunarMap() {
