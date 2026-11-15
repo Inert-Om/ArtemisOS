@@ -147,3 +147,27 @@
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
+
+@font-face {
+  font-family: "Lexend";
+  src: url("/fonts/Lexend-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cascadia Code";
+  src: url("/fonts/CascadiaCode-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Zalando Sans Expanded";
+  src: url("/fonts/ZalandoSansExpanded-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
