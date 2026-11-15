@@ -6,9 +6,9 @@ const PRESET_SITES = [
   { name: 'Shackleton Crater (Center)', lat: -89.67, lng: 129.78},
   { name: 'de Gerlache', lat: -88.5, lng: -87.10},
   { name: "Shoemaker", lat:-88.10, lng: 44.90 },
-  { name: "Moon Impact Probe (MIP), Chandrayaan 1", lat:-89.76, lng: 122.93 },
-  { name: "Lunar Prospector (1998)", lat:-87.70, lng: 42.1 },
   { name: "Faustini", lat:-87.30, lng: 77.00 },
+  { name: "Moon Impact Probe (MIP), Chandrayaan 1 (2008)", lat:-89.76, lng: 122.93 },
+  { name: "Lunar Prospector (1998)", lat:-87.70, lng: 42.1 },
 ];
 
 export default function LunarMap() {
@@ -40,13 +40,9 @@ export default function LunarMap() {
   const [loadingCritProfile, setLoadingCritProfile] = useState(false);
 
   const [activeSite, setActiveSite] = useState({
-    name: 'Shackleton Rim (Selected Target)',
+    name: 'ArtemisOS',
     lat: -89.9,
     lng: 0.0,
-    sunlight: '86%',
-    dte: 'Clear (Earth Elev: 6.4°)',
-    slope: 'Low (~4.2°)',
-    notes: 'Active landing zone inspected from high-resolution LOLA hillshade data.'
   });
 
   const [pinPos, setPinPos] = useState({ xPct: 50, yPct: 50 });
