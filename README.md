@@ -13,11 +13,11 @@
   * **Solar Illumination**: Percentage of continuous sunlight across a user-defined mission timeline.
   * **Water Ice Possibility**: Automated indicator predicting potential water-ice stability in permanently shadowed regions (PSRs).
 * **Optimal Landing Windows Engine**: Analyzes temporal line-of-sight vectors for both the Sun and Earth against local crater rim horizon masks (`SCritTheta` and `ECritTheta`), ranking optimal mission landing windows by duration and Direct-to-Earth (DTE) communication availability.
-* **2.5D Isometric Topography Profiles**: Generates on-demand 3D surface plots of local crater topography surrounding any selected observer point.
+* **2.5D Isometric Topography Profiles**: Generates on-demand 2.5D surface plots of local crater topography surrounding any selected observer point.
 * **Temporal Ephemeris Visualization**:
   * **Elevation vs. Azimuth**: Tracks solar and terrestrial elevation and azimuth angles relative to the lunar surface over custom date ranges.
   * **Elevation vs. Critical Angle**: Compares celestial elevation against local terrain horizon masking angles to pinpoint exact sunrise, sunset, and Earth-visibility transitions.
-* **Preset Mission Targets**: Quick-jump navigation to key sites including Shackleton Crater (Ridge & Center), de Gerlache, Shoemaker, Faustini, Chandrayaan-1 MIP, and Lunar Prospector.
+* **Preset Mission Targets**: Quick-jump navigation to key preset sites including Shackleton Crater (Ridge & Center), de Gerlache, Shoemaker, Faustini, Chandrayaan-1 MIP (2008), and Lunar Prospector (1998).
 
 ---
 
@@ -119,6 +119,11 @@ ArtemisOS can be compiled into a single, self-contained `.exe` file that bundles
 ---
 
 ## Acknowledgments
-* **NASA Lunar Reconnaissance Orbiter (LRO) / LOLA Team** for South Pole Digital Elevation Model datasets.
-* **NASA Navigation and Ancillary Information Facility (NAIF)** for the SPICE ephemeris toolkit and kernels.
+* **NASA Lunar Reconnaissance Orbiter (LRO) / LOLA Team and PGDA, Goddard Spaceflight Center (GSFC)** for South Pole Digital Elevation Model datasets.
+* **NASA Navigation and Ancillary Information Facility (NAIF), Jet Propulsion Laboratory (JPL)** for the SPICE ephemeris toolkit and kernels.
 * Built for the **NASA Space Apps Challenge 2026**.
+
+---
+
+**TEAM GYPSY DANGER**
+Devashrit Sarangi // Om Sai Mohapatra // Swastik Shuvam Behera
