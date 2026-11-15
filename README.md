@@ -57,7 +57,7 @@ ArtemisOS/
 ## Installation & Local Development
 
 ### 1. Prerequisites
-* **Python 3.12+** (Conda or virtual environment recommended)
+* **Python 3.11+** (Conda or virtual environment recommended)
 * **Node.js 18+** and `npm`
 
 ### 2. Backend Setup
@@ -125,5 +125,7 @@ ArtemisOS can be compiled into a single, self-contained `.exe` file that bundles
 
 ---
 
-**TEAM GYPSY DANGER**
-Devashrit Sarangi // Om Sai Mohapatra // Swastik Shuvam Behera
+<p align="center">
+<b>TEAM GYPSY DANGER</b><br>
+<i>Devashrit Sarangi // Om Sai Mohapatra // Swastik Shuvam Behera</i>
+</p>
