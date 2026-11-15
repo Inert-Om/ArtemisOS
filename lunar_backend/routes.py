@@ -1,39 +1,36 @@
+
+      
 from flask import Blueprint, request, jsonify
 import io
 import base64
-from LunaTrek import getMoonState
-from LunaTrek import get360profile
+from LunaTrek import *
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import traceback
+
 bp = Blueprint('routes', __name__)
 
 @bp.route('/get-elevation', methods=['POST'])
 def get_elevation():
-    # Get latitude and longitude from the frontend request (JSON payload)
   try:
     data = request.get_json()
     lat = float(data.get('latitude'))
     long = float(data.get('longitude'))
     
-    # Unpack the tuple, assigning np.array([x,y,z]) and np.array([row,col]) to underscore variables
     _, _, elev_m, slop_deg = getMoonState(lat, long)
     
-    # Store elev_m in another variable to be used for display
     elevation = float(elev_m)
-    slop=float(slop_deg)
+    slop = float(slop_deg)
     
-    # Return the elevation parameter to the frontend
     return jsonify({
         'status': 'success',
         'latitude': lat,
         'longitude': long,
         'elevation': elevation,
-        'slope':slop
+        'slope': slop
     })
   except Exception as e:
-    # Log the error for debugging purposes
     traceback.print_exc()
     return jsonify({
         'status': 'error',
@@ -47,10 +44,8 @@ def get_360_profile():
         phi = float(data.get('latitude'))
         lamb = float(data.get('longitude'))
         
-        # 1. Call get360profile from engine
         X_east, Y_north, eleveff = get360profile(phi, lamb)
         
-        # 2. Match the exact styling from your test notebook
         fig = plt.figure(figsize=(12, 9), facecolor='#0f172a')
         ax = fig.add_subplot(111, projection='3d')
         ax.set_facecolor('#0f172a')
@@ -59,31 +54,26 @@ def get_360_profile():
             X_east,
             Y_north,
             eleveff,
-            cmap='gist_earth',      # High-contrast terrain colormap for crater rims/floors
+            cmap='gist_earth',
             edgecolor='none',
             antialiased=True,
-            rcount=180,             # Smooth angular resolution
-            ccount=300              # Smooth radial resolution
+            rcount=180,
+            ccount=300
         )
         
-        # Mark the observer's exact position at the center (0, 0)
         _, _, obs_elev, _ = getMoonState(phi, lamb)
         ax.scatter([0], [0], [obs_elev], color='red', s=60, label='Observer Point', zorder=10)
         
-        # 4. Widen the base visually and tilt camera to look INTO the craters
-        ax.set_box_aspect((1, 1, 0.35))  # Streses X and Y relative to Z (flattens steep walls)
-        ax.view_init(elev=55, azim=-45)  # Higher 'elev' (50-70 deg) looks down into crater bowls
+        ax.set_box_aspect((1, 1, 0.35))
+        ax.view_init(elev=55, azim=-45)
         
         ax.set_title(f"Local Crater Topography [Lat: {phi}°, Lng: {lamb}°]", fontsize=13, color='#f8fafc', pad=15)
         ax.set_xlabel("East Distance (m)", color='#94a3b8', labelpad=8)
         ax.set_ylabel("North Distance (m)", color='#94a3b8', labelpad=8)
         ax.set_zlabel("Effective Elevation (m)", color='#94a3b8', labelpad=8)
         
-        # Tick colors and legend styling for dark theme
         ax.tick_params(colors='#94a3b8', labelsize=8)
-        
-        # Customize legend background and text to match dark UI
-        leg = ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
         
         cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=12, label="Elevation (m)")
         cbar.set_label("Elevation (m)", color='#f8fafc')
@@ -92,19 +82,120 @@ def get_360_profile():
 
         plt.tight_layout()
         
-        # 3. Save to memory buffer
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=130, bbox_inches='tight', facecolor=fig.get_facecolor(), edgecolor='none')
         buf.seek(0)
         img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-        
-        plt.close(fig)  # Clean up memory
+        plt.close(fig)
         
         return jsonify({
             "status": "success",
             "image": f"data:image/png;base64,{img_base64}"
         })
         
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@bp.route('/get-time-profile', methods=['POST'])
+def get_time_profile():
+    try:
+        data = request.get_json()
+        phi = float(data.get('latitude'))
+        lamb = float(data.get('longitude'))
+        starttime = data.get('starttime', '2026-11-11T12:00:00Z')
+        endtime = data.get('endtime', '2027-11-11T12:00:00Z')
+        
+        df = makeDF(starttime, endtime, freq="2h")
+        df=calcRVect(phi, lamb, df)
+        Spts = df[['SX', 'SY', 'SZ']].to_numpy()
+        Epts = df[['EX', 'EY', 'EZ']].to_numpy()
+        
+        # Unpack both return values correctly: maxTheta (elevation) and azimuth
+        df['SCritTheta'], df['SAzimuthal'] = getCritAzimuthalAngle(phi, lamb, Spts, elevation_grid, dem_transform)
+        df['ECritTheta'], df['EAzimuthal'] = getCritAzimuthalAngle(phi, lamb, Epts, elevation_grid, dem_transform)
+        
+        fig, axs = plt.subplots(2, 1, figsize=(14, 8), facecolor='#0f172a')
+        
+        # Subplot 0: Sun Elevation & Azimuth matching notebook
+        axs[0].set_facecolor('#0f172a')
+        axs[0].plot(df['datetime_utc'], df['STheta'], color='orange', label='Sun Elevation')
+        axs[0].plot(df['datetime_utc'], df['SAzimuthal'] % 360, color='red', linestyle='-', label='Sun Azimuth % 360')
+        axs[0].set_title(f"Elevation & Azimuth of Sun wrt moon surface — Lat: {phi}°, Lng: {lamb}°", color='#f8fafc', fontsize=11)
+        axs[0].tick_params(colors='#94a3b8', labelsize=8)
+        axs[0].legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc', fontsize=9)
+        axs[0].grid(True, color='#1e293b', alpha=0.5)
+        
+        # Subplot 1: Earth Elevation & Azimuth matching notebook
+        axs[1].set_facecolor('#0f172a')
+        axs[1].plot(df['datetime_utc'], df['ETheta'], color='blue', label='Earth Elevation')
+        axs[1].plot(df['datetime_utc'], df['EAzimuthal'] % 360, color='red', linestyle='-', label='Earth Azimuth % 360')
+        axs[1].set_title(f"Elevation & Azimuth of Earth wrt moon surface — Lat: {phi}°, Lng: {lamb}°", color='#f8fafc', fontsize=11)
+        axs[1].tick_params(colors='#94a3b8', labelsize=8)
+        axs[1].legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc', fontsize=9)
+        axs[1].grid(True, color='#1e293b', alpha=0.5)
+
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=130, bbox_inches='tight', facecolor=fig.get_facecolor(), edgecolor='none')
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
+        
+        return jsonify({"status": "success", "image": f"data:image/png;base64,{img_base64}"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@bp.route('/get-crit-profile', methods=['POST'])
+def get_crit_profile():
+    try:
+        data = request.get_json()
+        phi = float(data.get('latitude'))
+        lamb = float(data.get('longitude'))
+        starttime = data.get('starttime', '2026-11-11T12:00:00Z')
+        endtime = data.get('endtime', '2027-11-11T12:00:00Z')
+        
+        df = makeDF(starttime, endtime, freq="2h")
+        df=calcRVect(phi, lamb, df)
+     
+        Spts = df[['SX', 'SY', 'SZ']].to_numpy()
+        Epts = df[['EX', 'EY', 'EZ']].to_numpy()
+        
+        # Matching your notebook's critical angle extraction pattern
+        df['SCritTheta'], df['SAzimuthal'] = getCritAzimuthalAngle(phi, lamb, Spts, elevation_grid, dem_transform)
+        df['ECritTheta'], df['EAzimuthal'] = getCritAzimuthalAngle(phi, lamb, Epts, elevation_grid, dem_transform)
+        
+        fig, axs = plt.subplots(2, 1, figsize=(14, 8), facecolor='#0f172a')
+        
+        # Subplot 0: Sun Critical Angle vs Elevation matching notebook snippet 2
+        axs[0].set_facecolor('#0f172a')
+        axs[0].plot(df['datetime_utc'], df['STheta'], color='orange', label='Sun Elevation')
+        axs[0].plot(df['datetime_utc'], df['SCritTheta'], color='red', linestyle='--', label='Sun Critical Theta (SCritTheta)')
+        axs[0].set_title(f"Elevation of Sun wrt moon surface & Critical Angle — Lat: {phi}°, Lng: {lamb}°", color='#f8fafc', fontsize=11)
+        axs[0].tick_params(colors='#94a3b8', labelsize=8)
+        axs[0].legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc', fontsize=9)
+        axs[0].grid(True, color='#1e293b', alpha=0.5)
+        
+        # Subplot 1: Earth Critical Angle vs Elevation matching notebook snippet 2
+        axs[1].set_facecolor('#0f172a')
+        axs[1].plot(df['datetime_utc'], df['ETheta'], color='blue', label='Earth Elevation')
+        axs[1].plot(df['datetime_utc'], df['ECritTheta'], color='red', linestyle='--', label='Earth Critical Theta (ECritTheta)')
+        axs[1].set_title(f"Elevation of Earth wrt moon surface & Critical Angle — Lat: {phi}°, Lng: {lamb}°", color='#f8fafc', fontsize=11)
+        axs[1].tick_params(colors='#94a3b8', labelsize=8)
+        axs[1].legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc', fontsize=9)
+        axs[1].grid(True, color='#1e293b', alpha=0.5)
+
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=130, bbox_inches='tight', facecolor=fig.get_facecolor(), edgecolor='none')
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
+        
+        return jsonify({"status": "success", "image": f"data:image/png;base64,{img_base64}"})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500

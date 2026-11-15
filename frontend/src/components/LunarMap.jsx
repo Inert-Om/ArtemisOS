@@ -15,10 +15,24 @@ export default function LunarMap() {
   const [elevation, setElevation] = useState(null);
   const [slope, setSlope] = useState(null);
 
-  // New state for 3D Topography Modal & Loading
+  // 3D Topography Modal States
   const [profileImage, setProfileImage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // User-friendly Date-Time Picker States (Defaulting to Nov 2026 onwards)
+  const [startTime, setStartTime] = useState('2026-11-11T12:00');
+  const [endTime, setEndTime] = useState('2027-11-11T12:00');
+
+  // Sun & Earth Elevation + Azimuth Modal States
+  const [timeProfileImage, setTimeProfileImage] = useState(null);
+  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
+  const [loadingTimeProfile, setLoadingTimeProfile] = useState(false);
+
+  // Sun & Earth Elevation + Critical Angle Modal States
+  const [critProfileImage, setCritProfileImage] = useState(null);
+  const [isCritModalOpen, setIsCritModalOpen] = useState(false);
+  const [loadingCritProfile, setLoadingCritProfile] = useState(false);
 
   const [activeSite, setActiveSite] = useState({
     name: 'Shackleton Rim (Selected Target)',
@@ -40,6 +54,12 @@ export default function LunarMap() {
 
   const MAX_RADIUS_PCT = 41.5;
 
+  // Helper function to format native datetime-local string to backend expected UTC ISO format
+  const formatToUtcString = (localDateTimeStr) => {
+    if (!localDateTimeStr) return '2026-11-11T12:00:00Z';
+    return localDateTimeStr.length === 16 ? `${localDateTimeStr}:00Z` : `${localDateTimeStr}Z`;
+  };
+
   const fetchElevationAndSlope = async (lat, lng) => {
     try {
       const response = await fetch('http://localhost:5000/get-elevation', {
@@ -47,20 +67,16 @@ export default function LunarMap() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latitude: lat, longitude: lng }),
       });
-
       const data = await response.json();
       if (data.status === 'success') {
         setElevation(data.elevation);
         setSlope(data.slope);
       }
     } catch (error) {
-      console.error('Error fetching telemetry from backend:', error);
-      setElevation(null);
-      setSlope(null);
+      console.error('Error fetching telemetry:', error);
     }
   };
 
-  // Fetch 3D Topography Profile from Backend
   const fetch360Profile = async (lat, lng) => {
     setLoadingProfile(true);
     setIsModalOpen(true);
@@ -70,18 +86,52 @@ export default function LunarMap() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latitude: lat, longitude: lng }),
       });
-
       const data = await response.json();
-      if (data.status === 'success') {
-        setProfileImage(data.image);
-      } else {
-        setErrorMsg('⚠️ Failed to generate 3D topography profile.');
-      }
-    } catch (error) {
-      console.error('Error fetching 3D profile:', error);
-      setErrorMsg('⚠️ Network error connecting to 3D engine.');
+      if (data.status === 'success') setProfileImage(data.image);
     } finally {
       setLoadingProfile(false);
+    }
+  };
+
+  const fetchTimeProfile = async (lat, lng) => {
+    setLoadingTimeProfile(true);
+    setIsTimeModalOpen(true);
+    try {
+      const response = await fetch('http://localhost:5000/get-time-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          latitude: lat, 
+          longitude: lng, 
+          starttime: formatToUtcString(startTime), 
+          endtime: formatToUtcString(endTime) 
+        }),
+      });
+      const data = await response.json();
+      if (data.status === 'success') setTimeProfileImage(data.image);
+    } finally {
+      setLoadingTimeProfile(false);
+    }
+  };
+
+  const fetchCritProfile = async (lat, lng) => {
+    setLoadingCritProfile(true);
+    setIsCritModalOpen(true);
+    try {
+      const response = await fetch('http://localhost:5000/get-crit-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          latitude: lat, 
+          longitude: lng, 
+          starttime: formatToUtcString(startTime), 
+          endtime: formatToUtcString(endTime) 
+        }),
+      });
+      const data = await response.json();
+      if (data.status === 'success') setCritProfileImage(data.image);
+    } finally {
+      setLoadingCritProfile(false);
     }
   };
 
@@ -126,18 +176,15 @@ export default function LunarMap() {
     const rect = imgRef.current.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-
     const coords = percentToCoords(xPct, yPct);
     if (!coords) {
       setErrorMsg('⚠️ Outside optimized -87°S dataset bounds.');
       return;
     }
-
     setErrorMsg('');
     setPinPos({ xPct, yPct });
     setInputLat(coords.lat.toString());
     setInputLng(coords.lng.toString());
-
     setActiveSite({
       name: `Custom Target [Lat: ${coords.lat}°, Lng: ${coords.lng}°]`,
       lat: coords.lat,
@@ -147,7 +194,6 @@ export default function LunarMap() {
       slope: 'Calculated via backend...',
       notes: 'SPICE Mean Earth coordinate point inspection.'
     });
-
     fetchElevationAndSlope(coords.lat, coords.lng);
   };
 
@@ -155,12 +201,10 @@ export default function LunarMap() {
     e.preventDefault();
     const latNum = parseFloat(inputLat);
     const lngNum = parseFloat(inputLng);
-
     if (isNaN(latNum) || isNaN(lngNum) || latNum > -87 || latNum < -90) {
       setErrorMsg('⚠️ Invalid coordinates! Latitude must be strictly between -87° and -90° S.');
       return;
     }
-
     setErrorMsg('');
     const { xPct, yPct } = coordsToPercent(latNum, lngNum);
     setPinPos({ xPct, yPct });
@@ -173,14 +217,13 @@ export default function LunarMap() {
       slope: 'Calculated via backend...',
       notes: 'Targeted via SPICE Mean Earth frame engine.'
     });
-
     fetchElevationAndSlope(latNum, lngNum);
   };
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#05070b', color: '#f8fafc', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
       
-      {/* Left Area: Map Canvas */}
+      {/* Map Canvas */}
       <div 
         ref={containerRef}
         onWheel={handleWheel}
@@ -216,7 +259,6 @@ export default function LunarMap() {
             onClick={handleImageClick}
             style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', userSelect: 'none', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)', cursor: 'crosshair' }}
           />
-
           <div style={{
             position: 'absolute',
             top: `${pinPos.yPct}%`,
@@ -247,13 +289,53 @@ export default function LunarMap() {
           </span>
           <h1 style={{ fontSize: '18px', margin: '8px 0 16px 0', color: '#f8fafc' }}>{activeSite.name}</h1>
 
-          {/* 3D Topography Button Trigger */}
+          {/* 3D Topography Button */}
           <button 
             onClick={() => fetch360Profile(activeSite.lat, activeSite.lng)}
-            style={{ width: '100%', background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)' }}
+            style={{ width: '100%', background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', marginBottom: '12px', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)' }}
           >
             🔍 View 3D Topography Profile
           </button>
+
+          {/* SPICE Temporal Analysis Controls with Date-Time Pickers */}
+          <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
+            <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', display: 'block', marginBottom: '8px' }}>SPICE Temporal Analysis Window</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '3px' }}>Start Date & Time</label>
+                <input 
+                  type="datetime-local" 
+                  value={startTime} 
+                  onChange={e => setStartTime(e.target.value)} 
+                  style={{ width: '100%', background: '#0f172a', border: '1px solid #475569', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '11px', colorScheme: 'dark' }} 
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '3px' }}>End Date & Time</label>
+                <input 
+                  type="datetime-local" 
+                  value={endTime} 
+                  onChange={e => setEndTime(e.target.value)} 
+                  style={{ width: '100%', background: '#0f172a', border: '1px solid #475569', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '11px', colorScheme: 'dark' }} 
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                onClick={() => fetchTimeProfile(activeSite.lat, activeSite.lng)}
+                style={{ width: '100%', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
+              >
+                📈 Sun & Earth Elevation vs Azimuth
+              </button>
+              <button 
+                onClick={() => fetchCritProfile(activeSite.lat, activeSite.lng)}
+                style={{ width: '100%', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
+              >
+                📐 Sun & Earth Elevation vs Critical Angle
+              </button>
+            </div>
+          </div>
 
           <form onSubmit={handleFlyTo} style={{ background: '#1e293b', padding: '14px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#38bdf8', display: 'block', marginBottom: '8px' }}>Fly to Coordinates (-87° to -90°)</span>
@@ -351,6 +433,70 @@ export default function LunarMap() {
                 <img src={profileImage} alt="3D Topography Profile" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
               ) : (
                 <div style={{ color: '#ef4444' }}>Failed to load topography profile.</div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Sun & Earth Elevation vs Azimuth Profile Modal */}
+      {isTimeModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', width: '90vw', maxWidth: '1050px', padding: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', color: '#38bdf8' }}>Elevation & Azimuth Trajectory Analysis — {activeSite.name}</h2>
+              <button 
+                onClick={() => setIsTimeModalOpen(false)}
+                style={{ background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div style={{ minHeight: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#05070b', borderRadius: '8px', border: '1px solid #1e293b', position: 'relative', overflow: 'hidden' }}>
+              {loadingTimeProfile ? (
+                <div style={{ textAlign: 'center', color: '#38bdf8' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Executing SPICE Ephemeris Kernel Queries...</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Calculating sun and earth line-of-sight vectors across time series</div>
+                </div>
+              ) : timeProfileImage ? (
+                <img src={timeProfileImage} alt="Azimuth Profiles" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ color: '#ef4444' }}>Failed to load time profile graph.</div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Sun & Earth Elevation vs Critical Angle Profile Modal */}
+      {isCritModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', width: '90vw', maxWidth: '1050px', padding: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', color: '#10b981' }}>Elevation & Critical Angle Trajectory Analysis — {activeSite.name}</h2>
+              <button 
+                onClick={() => setIsCritModalOpen(false)}
+                style={{ background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div style={{ minHeight: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#05070b', borderRadius: '8px', border: '1px solid #1e293b', position: 'relative', overflow: 'hidden' }}>
+              {loadingCritProfile ? (
+                <div style={{ textAlign: 'center', color: '#10b981' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Executing SPICE Kernel & Horizon Profiles...</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Computing critical horizon masking angles across temporal bounds</div>
+                </div>
+              ) : critProfileImage ? (
+                <img src={critProfileImage} alt="Critical Angle Profiles" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ color: '#ef4444' }}>Failed to load critical angle profile graph.</div>
               )}
             </div>
 
