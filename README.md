@@ -57,7 +57,7 @@ ArtemisOS/
 ## Installation & Local Development
 
 ### 1. Prerequisites
-* **Python 3.11+** (Conda or virtual environment recommended)
+* **Python 3.12+** (Conda or virtual environment recommended)
 * **Node.js 18+** and `npm`
 
 ### 2. Backend Setup
