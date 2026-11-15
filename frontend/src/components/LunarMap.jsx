@@ -189,11 +189,7 @@ export default function LunarMap() {
     setActiveSite({
       name: `Custom Target [Lat: ${coords.lat}°, Lng: ${coords.lng}°]`,
       lat: coords.lat,
-      lng: coords.lng,
-      sunlight: '82%',
-      dte: 'Line-of-Sight Verified',
-      slope: 'Calculated via backend...',
-      notes: 'SPICE Mean Earth coordinate point inspection.'
+      lng: coords.lng
     });
     fetchElevationAndSlope(coords.lat, coords.lng);
   };
