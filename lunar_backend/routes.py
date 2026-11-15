@@ -148,7 +148,7 @@ def get_time_profile():
         
         # Subplot 1: Earth Elevation & Azimuth matching notebook
         axs[1].set_facecolor('#0f172a')
-        axs[1].plot(df['datetime_utc'], df['ETheta'], color='blue', label='Earth Elevation')
+        axs[1].plot(df['datetime_utc'], df['ETheta'], color='green', label='Earth Elevation')
         axs[1].plot(df['datetime_utc'], df['EAzimuthal'] % 360, color='red', linestyle='-', label='Earth Azimuth % 360')
         axs[1].set_title(f"Elevation & Azimuth of Earth wrt moon surface — Lat: {phi}°, Lng: {lamb}°", color='#f8fafc', fontsize=11)
         axs[1].tick_params(colors='#94a3b8', labelsize=8)
@@ -201,7 +201,7 @@ def get_crit_profile():
         
         # Subplot 1: Earth Critical Angle vs Elevation matching notebook snippet 2
         axs[1].set_facecolor('#0f172a')
-        axs[1].plot(df['datetime_utc'], df['ETheta'], color='blue', label='Earth Elevation')
+        axs[1].plot(df['datetime_utc'], df['ETheta'], color='green', label='Earth Elevation')
         axs[1].plot(df['datetime_utc'], df['ECritTheta'], color='red', linestyle='--', label='Earth Critical Theta (ECritTheta)')
         axs[1].set_title(f"Elevation of Earth wrt moon surface & Critical Angle — Lat: {phi}°, Lng: {lamb}°", color='#f8fafc', fontsize=11)
         axs[1].tick_params(colors='#94a3b8', labelsize=8)
