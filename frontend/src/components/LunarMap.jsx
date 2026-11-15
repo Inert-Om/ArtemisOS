@@ -20,6 +20,8 @@ export default function LunarMap() {
   const [elevation, setElevation] = useState(null);
   const [slope, setSlope] = useState(null);
   const [solarIllumination, setSolarIllumination] = useState(null);
+  const [waterPossibility, setWaterPossibility] = useState(null);
+
   const [landingWindows, setLandingWindows] = useState([]);
 
   // 3D Topography Modal States
@@ -81,6 +83,7 @@ export default function LunarMap() {
         setElevation(data.elevation);
         setSlope(data.slope);
         setSolarIllumination(data.solar_illumination);
+        setWaterPossibility(data.water_possibility);
         setLandingWindows(data.landing_windows || []);
       }
     } catch (error) {
@@ -365,6 +368,12 @@ export default function LunarMap() {
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Solar Illumination</span>
               <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '13px' }}>
                 {solarIllumination !== null ? `${solarIllumination}%` : 'Loading...'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '13px' }}>Water Ice Possibility</span>
+              <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>
+                {waterPossibility !== null ? (waterPossibility === 1 ? 'High (Shadowed)' : 'Low (Illuminated)') : 'Loading...'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
