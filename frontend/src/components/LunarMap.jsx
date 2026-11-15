@@ -12,9 +12,13 @@ export default function LunarMap() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // 1. Add state to hold elevation and slope from the backend
   const [elevation, setElevation] = useState(null);
   const [slope, setSlope] = useState(null);
+
+  // New state for 3D Topography Modal & Loading
+  const [profileImage, setProfileImage] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   const [activeSite, setActiveSite] = useState({
     name: 'Shackleton Rim (Selected Target)',
@@ -36,14 +40,11 @@ export default function LunarMap() {
 
   const MAX_RADIUS_PCT = 41.5;
 
-  // 2. Update fetch function to capture both elevation and slope
   const fetchElevationAndSlope = async (lat, lng) => {
     try {
       const response = await fetch('http://localhost:5000/get-elevation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latitude: lat, longitude: lng }),
       });
 
@@ -59,34 +60,48 @@ export default function LunarMap() {
     }
   };
 
+  // Fetch 3D Topography Profile from Backend
+  const fetch360Profile = async (lat, lng) => {
+    setLoadingProfile(true);
+    setIsModalOpen(true);
+    try {
+      const response = await fetch('http://localhost:5000/get-360-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        setProfileImage(data.image);
+      } else {
+        setErrorMsg('⚠️ Failed to generate 3D topography profile.');
+      }
+    } catch (error) {
+      console.error('Error fetching 3D profile:', error);
+      setErrorMsg('⚠️ Network error connecting to 3D engine.');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
   const coordsToPercent = (lat, lng) => {
     const poleDistRatio = (lat + 90) / 3; 
     const radiusPct = poleDistRatio * MAX_RADIUS_PCT;
-
     const rad = lng * (Math.PI / 180);
-    const xPct = 50 + radiusPct * Math.sin(rad);
-    const yPct = 50 - radiusPct * Math.cos(rad);
-
-    return { xPct, yPct };
+    return { xPct: 50 + radiusPct * Math.sin(rad), yPct: 50 - radiusPct * Math.cos(rad) };
   };
 
   const percentToCoords = (xPct, yPct) => {
     const dx = xPct - 50;
     const dy = 50 - yPct;
     const radiusPct = Math.sqrt(dx * dx + dy * dy);
-
     if (radiusPct > MAX_RADIUS_PCT + 2) return null;
-
     const poleDistRatio = radiusPct / MAX_RADIUS_PCT;
     const lat = -90 + (poleDistRatio * 3);
-
     let lng = Math.atan2(dx, dy) * (180 / Math.PI);
     if (lng < 0) lng += 360;
-
-    return { 
-      lat: Number(Math.max(-90, Math.min(-87, lat)).toFixed(2)), 
-      lng: Number(lng.toFixed(2)) 
-    };
+    return { lat: Number(Math.max(-90, Math.min(-87, lat)).toFixed(2)), lng: Number(lng.toFixed(2)) };
   };
 
   const handleWheel = (e) => {
@@ -109,11 +124,8 @@ export default function LunarMap() {
 
   const handleImageClick = (e) => {
     const rect = imgRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-
-    const xPct = (clickX / rect.width) * 100;
-    const yPct = (clickY / rect.height) * 100;
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
 
     const coords = percentToCoords(xPct, yPct);
     if (!coords) {
@@ -136,7 +148,6 @@ export default function LunarMap() {
       notes: 'SPICE Mean Earth coordinate point inspection.'
     });
 
-    // Trigger backend call on map click
     fetchElevationAndSlope(coords.lat, coords.lng);
   };
 
@@ -152,7 +163,6 @@ export default function LunarMap() {
 
     setErrorMsg('');
     const { xPct, yPct } = coordsToPercent(latNum, lngNum);
-
     setPinPos({ xPct, yPct });
     setActiveSite({
       name: `Target [Lat: ${latNum}°, Lng: ${lngNum}°]`,
@@ -164,12 +174,11 @@ export default function LunarMap() {
       notes: 'Targeted via SPICE Mean Earth frame engine.'
     });
 
-    // Trigger backend call on Fly To submit
     fetchElevationAndSlope(latNum, lngNum);
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#05070b', color: '#f8fafc', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#05070b', color: '#f8fafc', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
       
       {/* Left Area: Map Canvas */}
       <div 
@@ -231,12 +240,20 @@ export default function LunarMap() {
       </div>
 
       {/* Right Sidebar */}
-      <div style={{ width: '380px', backgroundColor: '#0f172a', borderLeft: '1px solid #334155', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 10 }}>
+      <div style={{ width: '380px', backgroundColor: '#0f172a', borderLeft: '1px solid #334155', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 10, overflowY: 'auto' }}>
         <div>
           <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fbbf24', fontWeight: 'bold' }}>
             Mission Control Telemetry
           </span>
           <h1 style={{ fontSize: '18px', margin: '8px 0 16px 0', color: '#f8fafc' }}>{activeSite.name}</h1>
+
+          {/* 3D Topography Button Trigger */}
+          <button 
+            onClick={() => fetch360Profile(activeSite.lat, activeSite.lng)}
+            style={{ width: '100%', background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)' }}
+          >
+            🔍 View 3D Topography Profile
+          </button>
 
           <form onSubmit={handleFlyTo} style={{ background: '#1e293b', padding: '14px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#38bdf8', display: 'block', marginBottom: '8px' }}>Fly to Coordinates (-87° to -90°)</span>
@@ -270,7 +287,6 @@ export default function LunarMap() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Terrain Slope Hazard</span>
-              {/* 3. Display the live calculated slope data */}
               <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '13px' }}>
                 {slope !== null ? `${Number(slope).toFixed(2)}°` : activeSite.slope}
               </span>
@@ -294,7 +310,6 @@ export default function LunarMap() {
                     const { xPct, yPct } = coordsToPercent(site.lat, site.lng);
                     setPinPos({ xPct, yPct });
                     setErrorMsg('');
-                    // Trigger backend call on preset selection
                     fetchElevationAndSlope(site.lat, site.lng);
                   }}
                   style={{ background: '#1e293b', border: '1px solid #334155', color: '#e2e8f0', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
@@ -306,10 +321,42 @@ export default function LunarMap() {
           </div>
         </div>
 
-        <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center', borderTop: '1px solid #1e293b', paddingTop: '14px' }}>
+        <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center', borderTop: '1px solid #1e293b', paddingTop: '14px', marginTop: '20px' }}>
           NASA Space Apps Challenge 2026 — Lunar Landing Site Navigator
         </div>
       </div>
+
+      {/* 3D Topography Modal Popup */}
+      {isModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', width: '85vw', maxWidth: '900px', padding: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', color: '#fbbf24' }}>3D Crater Topography Analysis — {activeSite.name}</h2>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                style={{ background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div style={{ minHeight: '450px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#05070b', borderRadius: '8px', border: '1px solid #1e293b', position: 'relative', overflow: 'hidden' }}>
+              {loadingProfile ? (
+                <div style={{ textAlign: 'center', color: '#38bdf8' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Rendering 3D SPICE Topography Model...</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Calculating 360° radial distance vectors & elevations</div>
+                </div>
+              ) : profileImage ? (
+                <img src={profileImage} alt="3D Topography Profile" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ color: '#ef4444' }}>Failed to load topography profile.</div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

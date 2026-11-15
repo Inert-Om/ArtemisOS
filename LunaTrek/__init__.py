@@ -46,7 +46,7 @@ def get_resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 # Define path using the helper so the .tif and all SPICE kernels resolve correctly
-path = get_resource_path("LunaTrace") + os.sep
+path = get_resource_path("LunaTrek") + os.sep
 dem_path = path + "ldem_87s_5mpp.tif"
 
 with rasterio.open(dem_path) as src:
