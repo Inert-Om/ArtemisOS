@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import './LunarMap.css';
 
 const PRESET_SITES = [
   { name: 'Shackleton Crater (Ridge)', lat: -89.9, lng: 0.0},
@@ -295,9 +296,10 @@ export default function LunarMap() {
           {/* 3D Topography Button */}
           <button 
             onClick={() => fetch360Profile(activeSite.lat, activeSite.lng)}
-            style={{ width: '100%',fontFamily: "Lexend, sans-serif", background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', marginBottom: '12px', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)' }}
+            className="topography-profile-button"
+            // style={{ width: '100%',fontFamily: "Lexend, sans-serif", background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', marginBottom: '12px', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)' }}
           >
-            View 3D Topography Profile
+            View 2.5D Topography Profile
           </button>
 
           <div style={{ fontFamily: "Cascadia Code, sans-serif", background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
@@ -326,13 +328,15 @@ export default function LunarMap() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: "Lexend, sans-serif" }}>
               <button 
                 onClick={() => fetchTimeProfile(activeSite.lat, activeSite.lng)}
-                style={{ fontFamily: "Lexend, sans-serif", width: '100%', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
+                className="azimuth-profile-button"
+                // style={{ fontFamily: "Lexend, sans-serif", width: '100%', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
               >
                 Elevation vs Azimuth
               </button>
               <button 
                 onClick={() => fetchCritProfile(activeSite.lat, activeSite.lng)}
-                style={{ fontFamily: "Lexend, sans-serif", width: '100%', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
+                className="critical-angle-profile-button"
+                // style={{ fontFamily: "Lexend, sans-serif", width: '100%', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
               >
                 Elevation vs Critical Angle
               </button>
@@ -351,7 +355,10 @@ export default function LunarMap() {
                 <input type="text" value={inputLng} onChange={e => setInputLng(e.target.value)} style={{ fontFamily: "Cascadia Code, sans-serif", width: '100%', background: '#0f172a', border: '1px solid #475569', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '12px' }} />
               </div>
             </div>
-            <button type="submit" style={{ fontFamily: "Lexend, sans-serif" , width: '100%', background: '#3b82f6', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Fly to Location</button>
+            <button type="submit" className="fly-to-location-button">
+              Fly to Location
+            </button>
+            {/* <button type="submit" style={{ fontFamily: "Lexend, sans-serif" , width: '100%', background: '#3b82f6', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Fly to Location</button> */}
           </form>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontFamily: "Cascadia Code, sans-serif" }}>
@@ -396,7 +403,7 @@ export default function LunarMap() {
                     setErrorMsg('');
                     fetchElevationAndSlope(site.lat, site.lng);
                   }}
-                  style={{ background: '#1e293b',fontFamily: "Lexend, sans-serif", border: '1px solid #334155', color: '#e2e8f0', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                  className="preset-site-button"
                 >
                   {site.name}
                 </button>
