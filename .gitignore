@@ -4,6 +4,8 @@ EngineMaking/
 
 LunaTrace/*
 !LunaTrace/__init__.py
+LunaTrek/*
+!LunaTrek/__init__.py
 
 node_modules/
 

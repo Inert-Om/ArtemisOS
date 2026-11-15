@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from LunaTrace import getMoonState
+from LunaTrek import getMoonState
 import traceback
 bp = Blueprint('routes', __name__)
 
