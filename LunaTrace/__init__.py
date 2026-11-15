@@ -1,4 +1,5 @@
 import spiceypy as spice
+import sys
 import numpy as np
 import pandas as pd
 import rasterio
@@ -7,14 +8,53 @@ from pyproj import Transformer
 import os
 
 # Load and store the elevations file
-path = os.path.dirname(os.path.realpath(__file__)) + '/'
+# path = os.path.dirname(os.path.realpath(__file__)) + '/'
+# dem_path = path + "ldem_87s_5mpp.tif"
+# with rasterio.open(dem_path) as src:
+#     elevation_grid = src.read(1)
+#     dem_transform = src.transform
+#     dem_crs = src.crs
+#     moon_geo_crs = dem_crs.geodetic_crs
+# transformer = Transformer.from_crs(moon_geo_crs, dem_crs, always_xy=True)
+# def get_resource_path(relative_path):
+#     """Get absolute path to resource, works for dev and for PyInstaller"""
+#     if hasattr(sys, '_MEIPASS'):
+#         return os.path.join(sys._MEIPASS, relative_path)
+#     return os.path.join(os.path.abspath("."), relative_path)
+
+# # Define path using the resource helper so .tif and all SPICE kernels resolve correctly
+# path = get_resource_path("LunaTrace") + os.sep
+# dem_path = path + "ldem_87s_5mpp.tif"/
+def get_resource_path(relative_path):
+    """
+    Get absolute path to resource. 
+    Prioritizes looking in the folder right next to the .exe (for heavy external assets),
+    then falls back to PyInstaller's internal bundle, then local dev directory.
+    """
+    if getattr(sys, 'frozen', False):
+        # 1. Look right next to the compiled ArtemisOS.exe
+        base_path = os.path.dirname(sys.executable)
+        target_path = os.path.join(base_path, relative_path)
+        if os.path.exists(target_path):
+            return target_path
+            
+        # 2. Fallback to PyInstaller internal temp folder (_MEIPASS)
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+            
+    # Development mode fallback
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# Define path using the helper so the .tif and all SPICE kernels resolve correctly
+path = get_resource_path("LunaTrace") + os.sep
 dem_path = path + "ldem_87s_5mpp.tif"
+
 with rasterio.open(dem_path) as src:
     elevation_grid = src.read(1)
     dem_transform = src.transform
     dem_crs = src.crs
     moon_geo_crs = dem_crs.geodetic_crs
-transformer = Transformer.from_crs(moon_geo_crs, dem_crs, always_xy=True)
+    transformer = Transformer.from_crs(moon_geo_crs, dem_crs, always_xy=True)
 
 
 # Function to get cartesian coordinates, elevation row and column and elevation in mt

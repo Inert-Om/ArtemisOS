@@ -1,33 +1,36 @@
 import os
-from flask import Flask
+import sys
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 
-def create_app(test_config=None):
-    # Create and configure the app
-    app = Flask(__name__, instance_relative_config=True)
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+def create_app():
+    dist_folder = get_resource_path("frontend/dist")
     
-    # Enable CORS so your React frontend (running on localhost:5173) can talk to Flask
+    # You can safely keep instance_relative_config=True here!
+    app = Flask(
+        __name__, 
+        static_folder=dist_folder, 
+        static_url_path="", 
+        instance_relative_config=True
+    )
     CORS(app)
 
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-    )
+    # Ensure the instance folder exists dynamically
+    os.makedirs(app.instance_path, exist_ok=True)
 
-    if test_config is None:
-        # Load the instance config, if it exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
-    else:
-        # Load the test config if passed in
-        app.config.from_mapping(test_config)
-
-    # Ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path, exist_ok=True)
-    except OSError:
-        pass
-
-    # Register Blueprints / Routes
+    # Register blueprints (like your routes.py)
     from . import routes
     app.register_blueprint(routes.bp)
+
+    # Serve the React frontend main page
+    @app.route("/")
+    def serve_react():
+        return send_from_directory(app.static_folder, "index.html")
 
     return app

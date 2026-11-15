@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify
 from LunaTrace import getMoonState
-
+import traceback
 bp = Blueprint('routes', __name__)
 
 @bp.route('/get-elevation', methods=['POST'])
 def get_elevation():
     # Get latitude and longitude from the frontend request (JSON payload)
+  try:
     data = request.get_json()
     lat = float(data.get('latitude'))
     long = float(data.get('longitude'))
@@ -25,3 +26,10 @@ def get_elevation():
         'elevation': elevation,
         'slope':slop
     })
+  except Exception as e:
+    # Log the error for debugging purposes
+    traceback.print_exc()
+    return jsonify({
+        'status': 'error',
+        'message': str(e)
+    }), 500

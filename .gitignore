@@ -10,3 +10,9 @@ node_modules/
 test.ipynb
 wget-log
 ldem_87s_5mpp_hillshade.tif
+
+build/
+
+dist/
+
+ArtemisOS.spec
