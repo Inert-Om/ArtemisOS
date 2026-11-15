@@ -1,5 +1,6 @@
 import spiceypy as spice
 import sys
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import rasterio
@@ -7,24 +8,6 @@ from rasterio.transform import rowcol
 from pyproj import Transformer
 import os
 
-# Load and store the elevations file
-# path = os.path.dirname(os.path.realpath(__file__)) + '/'
-# dem_path = path + "ldem_87s_5mpp.tif"
-# with rasterio.open(dem_path) as src:
-#     elevation_grid = src.read(1)
-#     dem_transform = src.transform
-#     dem_crs = src.crs
-#     moon_geo_crs = dem_crs.geodetic_crs
-# transformer = Transformer.from_crs(moon_geo_crs, dem_crs, always_xy=True)
-# def get_resource_path(relative_path):
-#     """Get absolute path to resource, works for dev and for PyInstaller"""
-#     if hasattr(sys, '_MEIPASS'):
-#         return os.path.join(sys._MEIPASS, relative_path)
-#     return os.path.join(os.path.abspath("."), relative_path)
-
-# # Define path using the resource helper so .tif and all SPICE kernels resolve correctly
-# path = get_resource_path("LunaTrace") + os.sep
-# dem_path = path + "ldem_87s_5mpp.tif"/
 def get_resource_path(relative_path):
     """
     Get absolute path to resource. 
@@ -105,7 +88,7 @@ def makeDF(starttime, endtime, freq="2h"):
         abcorr="LT+S",        # Aberration correction
         obs="301"             # Observer: Moon
     )
-    Estate, Elight_time = spice.spkpos(
+    Estate, _ = spice.spkpos(
         targ="399",            # Target: Earth
         et=df['et'], 
         ref="MOON_ME_DE440_ME421",        # Frame: Moon Mean Earth
@@ -244,4 +227,42 @@ def get360profile(phi, lamb, elevation_grid=elevation_grid, dem_transform=dem_tr
     X_east = DIST * np.sin(AZ)   # Keep in meters for local crater scale
     Y_north = DIST * np.cos(AZ)
 
-    return X_east, Y_north, eleveff 
+    return X_east, Y_north, eleveff
+
+def findOptimalDatesNShadowPercent(df):
+    df = df.copy()
+    df['SPOV'] = df['STheta'] > df['SCritTheta']
+    df['EPOV'] = df['ETheta'] > df['ECritTheta']
+
+    sunlight_ratio = df['SPOV'].sum() / len(df['SPOV'])
+
+    df['solar_block'] = (df['SPOV'] != df['SPOV'].shift()).cumsum()
+    windows = []
+
+    for block_id, group in df.groupby('solar_block'):
+        if not group['SPOV'].iloc[0]:
+            continue
+
+        starttime = datetime.fromisoformat(group['datetime_utc'].iloc[0])
+        endtime = datetime.fromisoformat(group['datetime_utc'].iloc[-1])
+        num_steps = len(group)
+        duration_s = endtime - starttime
+
+        earth_visible = group['EPOV'].sum()
+        earth_visible_ratio = earth_visible / num_steps if num_steps > 0 else 0.0
+
+        composite_score = duration_s/3600 * (0.5 + (0,5 * earth_visible_ratio))
+
+        windows.append({
+            'start_time': starttime,
+            'end_time': endtime,
+            'duration_s': duration_s/3600,
+            'earth_comms_percentage': round(earth_visible_ratio * 100.0, 2),
+            'composite_score': composite_score,
+        })
+
+    windows_df = pd.DataFrame(windows)
+    if windows_df.empty:
+        return windows_df, 1.0
+    windows_df = windows_df.sort_values(by=['composite_score', 'duration_hours'], ascending=False)
+    return windows_df, sunlight_ratio
