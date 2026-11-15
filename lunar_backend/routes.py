@@ -1,5 +1,3 @@
-
-      
 from flask import Blueprint, request, jsonify
 import io
 import base64
@@ -10,25 +8,42 @@ import matplotlib.pyplot as plt
 import traceback
 
 bp = Blueprint('routes', __name__)
+df = pd.DataFrame()
 
 @bp.route('/get-elevation', methods=['POST'])
 def get_elevation():
+  
   try:
     data = request.get_json()
     lat = float(data.get('latitude'))
     long = float(data.get('longitude'))
+    starttime = data.get('starttime') or data.get('startTime') or '2026-11-11T12:00:00Z'
+    endtime = data.get('endtime') or data.get('endTime') or '2027-11-11T12:00:00Z'
     
     _, _, elev_m, slop_deg = getMoonState(lat, long)
     
     elevation = float(elev_m)
     slop = float(slop_deg)
+    df_time = makeDF(starttime, endtime, freq="2h")
+    df_time = calcRVect(lat, long, df_time)
+    Spts = df_time[['SX', 'SY', 'SZ']].to_numpy()
+    Epts = df_time[['EX', 'EY', 'EZ']].to_numpy()
+    
+    df_time['SCritTheta'], df_time['SAzimuthal'] = getCritAzimuthalAngle(lat, long, Spts, elevation_grid, dem_transform)
+    df_time['ECritTheta'], df_time['EAzimuthal'] = getCritAzimuthalAngle(lat, long, Epts, elevation_grid, dem_transform)
+    
+    windows_df, sunlight_ratio = findOptimalDatesNShadowPercent(df_time)
+    solar_illumination = round(sunlight_ratio * 100.0, 2)
+    landing_windows = windows_df.to_dict(orient='records') if not windows_df.empty else []
     
     return jsonify({
         'status': 'success',
         'latitude': lat,
         'longitude': long,
         'elevation': elevation,
-        'slope': slop
+        'slope': slop,
+        'solar_illumination': solar_illumination,
+        'landing_windows': landing_windows
     })
   except Exception as e:
     traceback.print_exc()
@@ -39,6 +54,7 @@ def get_elevation():
 
 @bp.route('/get-360-profile', methods=['POST'])
 def get_360_profile():
+    
     try:
         data = request.get_json()
         phi = float(data.get('latitude'))
@@ -100,6 +116,7 @@ def get_360_profile():
 
 @bp.route('/get-time-profile', methods=['POST'])
 def get_time_profile():
+   
     try:
         data = request.get_json()
         phi = float(data.get('latitude'))
@@ -151,6 +168,7 @@ def get_time_profile():
 
 @bp.route('/get-crit-profile', methods=['POST'])
 def get_crit_profile():
+   
     try:
         data = request.get_json()
         phi = float(data.get('latitude'))
@@ -199,3 +217,4 @@ def get_crit_profile():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
+

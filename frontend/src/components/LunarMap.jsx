@@ -19,6 +19,8 @@ export default function LunarMap() {
 
   const [elevation, setElevation] = useState(null);
   const [slope, setSlope] = useState(null);
+  const [solarIllumination, setSolarIllumination] = useState(null);
+  const [landingWindows, setLandingWindows] = useState([]);
 
   // 3D Topography Modal States
   const [profileImage, setProfileImage] = useState(null);
@@ -66,12 +68,19 @@ export default function LunarMap() {
       const response = await fetch('http://localhost:5000/get-elevation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ latitude: lat, longitude: lng }),
+        body: JSON.stringify({ 
+          latitude: lat, 
+          longitude: lng,
+          starttime: formatToUtcString(startTime),
+          endtime: formatToUtcString(endTime)
+        }),
       });
       const data = await response.json();
       if (data.status === 'success') {
         setElevation(data.elevation);
         setSlope(data.slope);
+        setSolarIllumination(data.solar_illumination);
+        setLandingWindows(data.landing_windows || []);
       }
     } catch (error) {
       console.error('Error fetching telemetry:', error);
@@ -208,11 +217,7 @@ export default function LunarMap() {
     setActiveSite({
       name: `Target [Lat: ${latNum}°, Lng: ${lngNum}°]`,
       lat: latNum,
-      lng: lngNum,
-      sunlight: '84%',
-      dte: 'Direct Line-of-Sight',
-      slope: 'Calculated via backend...',
-      notes: 'Targeted via SPICE Mean Earth frame engine.'
+      lng: lngNum
     });
     fetchElevationAndSlope(latNum, lngNum);
   };
@@ -230,7 +235,7 @@ export default function LunarMap() {
         style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <div style={{ position: 'absolute', top: '20px', left: '20px', background: 'rgba(15, 23, 42, 0.9)', padding: '12px 18px', borderRadius: '8px', border: '1px solid #334155', zIndex: 10, pointerEvents: 'none' }}>
-          <h2 style={{ margin: 0, fontFamily: 'Zalando Sans Expanded, sans-serif', fontSize: '15px', color: '#fbbf24' }}>ArtemisOS: LunaTrek Engine</h2>
+          <h2 style={{ margin: 0, fontSize: '15px', color: '#fbbf24' }}>ArtemisOS: LunaTrek Engine</h2>
           <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#94a3b8', fontFamily: "Cascadia Code, sans-serif" }}>SCROLL TO ZOOM // CLICK & DRAG TO PAN // CLICK MAP TO INSPECT</p>
         </div>
 
@@ -281,22 +286,18 @@ export default function LunarMap() {
       {/* Right Sidebar */}
       <div style={{ width: '380px', backgroundColor: '#0f172a', borderLeft: '1px solid #334155', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 10, overflowY: 'auto' }}>
         <div>
-          <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fbbf24', fontWeight: 'bold' }}>
-            
-          </span>
+          <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fbbf24', fontWeight: 'bold' }}></span>
           <h1 style={{ fontSize: '18px', margin: '8px 0 16px 0', color: '#f8fafc', fontFamily: "Lexend, sans-serif" }}>{activeSite.name}</h1>
 
           {/* 3D Topography Button */}
           <button 
             onClick={() => fetch360Profile(activeSite.lat, activeSite.lng)}
             className="topography-profile-button"
-            // style={{ width: '100%',fontFamily: "Lexend, sans-serif", background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', marginBottom: '12px', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)' }}
           >
             View 2.5D Topography Profile
           </button>
 
           <div style={{ fontFamily: "Cascadia Code, sans-serif", background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
-            <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', display: 'block', marginBottom: '8px' }}></span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
               <div>
                 <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '3px' }}>Start Date & Time</label>
@@ -322,14 +323,12 @@ export default function LunarMap() {
               <button 
                 onClick={() => fetchTimeProfile(activeSite.lat, activeSite.lng)}
                 className="azimuth-profile-button"
-                // style={{ fontFamily: "Lexend, sans-serif", width: '100%', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
               >
                 Elevation vs Azimuth
               </button>
               <button 
                 onClick={() => fetchCritProfile(activeSite.lat, activeSite.lng)}
                 className="critical-angle-profile-button"
-                // style={{ fontFamily: "Lexend, sans-serif", width: '100%', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
               >
                 Elevation vs Critical Angle
               </button>
@@ -351,9 +350,9 @@ export default function LunarMap() {
             <button type="submit" className="fly-to-location-button">
               Fly to Location
             </button>
-            {/* <button type="submit" style={{ fontFamily: "Lexend, sans-serif" , width: '100%', background: '#3b82f6', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Fly to Location</button> */}
           </form>
 
+          {/* Telemetry Section: DTE removed, Slope Hazard moved up, Solar Illumination = sunlight_ratio * 100 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontFamily: "Cascadia Code, sans-serif" }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Elevation (LOLA)</span>
@@ -363,23 +362,48 @@ export default function LunarMap() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Solar Illumination</span>
-              <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '13px' }}>{activeSite.sunlight}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
-              <span style={{ color: '#94a3b8', fontSize: '13px' }}>Direct-to-Earth (DTE)</span>
-              <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>{activeSite.dte}</span>
+              <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '13px' }}>
+                {solarIllumination !== null ? `${solarIllumination}%` : 'Loading...'}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>Terrain Slope Hazard</span>
               <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '13px' }}>
-                {slope !== null ? `${Number(slope).toFixed(2)}°` : activeSite.slope}
+                {slope !== null ? `${Number(slope).toFixed(2)}°` : 'Loading...'}
               </span>
             </div>
           </div>
 
-          <div style={{ marginTop: '20px', backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px', fontSize: '12px', lineHeight: '1.4', color: '#cbd5e1' }}>
-            <strong>Notes:</strong> {activeSite.notes}
-          </div>
+          {/* Scrollable Landing Windows Table */}
+          {landingWindows.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontFamily: "Cascadia Code, sans-serif" }}>Optimal Landing Windows:</span>
+              <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #334155', borderRadius: '8px', background: '#1e293b', padding: '6px' }}>
+                <table style={{ width: '100%', fontSize: '10px', color: '#f8fafc', borderCollapse: 'collapse', fontFamily: "Cascadia Code, sans-serif" }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #475569', color: '#38bdf8', textAlign: 'left' }}>
+                      <th style={{ padding: '4px' }}>Start</th>
+                      <th style={{ padding: '4px' }}>End</th>
+                      <th style={{ padding: '4px' }}>Dur(h)</th>
+                      <th style={{ padding: '4px' }}>Earth%</th>
+                      <th style={{ padding: '4px' }}>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {landingWindows.map((win, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #0f172a' }}>
+                        <td style={{ padding: '4px' }}>{win.start_time?.replace('T', ' ').substring(0, 16)}</td>
+                        <td style={{ padding: '4px' }}>{win.end_time?.replace('T', ' ').substring(0, 16)}</td>
+                        <td style={{ padding: '4px' }}>{win.duration_s}</td>
+                        <td style={{ padding: '4px' }}>{win.earth_comms_percentage}%</td>
+                        <td style={{ padding: '4px' }}>{win.composite_score}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div style={{ marginTop: '20px' }}>
             <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontFamily: "Cascadia Code, sans-serif"}}>Preset Sites:</span>
@@ -390,7 +414,7 @@ export default function LunarMap() {
                   onClick={() => {
                     setInputLat(site.lat.toString());
                     setInputLng(site.lng.toString());
-                    setActiveSite({ name: site.name, lat: site.lat, lng: site.lng, sunlight: site.sunlight, dte: site.dte, slope: site.slope, notes: site.notes });
+                    setActiveSite({ name: site.name, lat: site.lat, lng: site.lng });
                     const { xPct, yPct } = coordsToPercent(site.lat, site.lng);
                     setPinPos({ xPct, yPct });
                     setErrorMsg('');
@@ -405,7 +429,7 @@ export default function LunarMap() {
           </div>
         </div>
 
-        <div style={{ fontSize: '11px', fontFamily: "Lexend, sans-serif",color: '#64748b', textAlign: 'center', borderTop: '1px solid #1e293b', paddingTop: '14px', marginTop: '20px' }}>
+        <div style={{ fontSize: '11px', fontFamily: "Lexend, sans-serif", color: '#64748b', textAlign: 'center', borderTop: '1px solid #1e293b', paddingTop: '14px', marginTop: '20px' }}>
           NASA Space Apps Challenge 2026 // Lunar Landing Site Navigator
         </div>
       </div>
@@ -429,7 +453,6 @@ export default function LunarMap() {
               {loadingProfile ? (
                 <div style={{ textAlign: 'center', color: '#38bdf8' }}>
                   <div style={{ fontFamily: "Lexend, sans-serif",fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Rendering...</div>
-                  {/* <div style={{ fontFamily: "Lexend, sans-serif",fontSize: '11px', color: '#94a3b8' }}>Calculating and plotting distance vectors & elevations</div> */}
                 </div>
               ) : profileImage ? (
                 <img src={profileImage} alt="3D Topography Profile" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
@@ -461,7 +484,6 @@ export default function LunarMap() {
               {loadingTimeProfile ? (
                 <div style={{ textAlign: 'center', color: '#38bdf8' }}>
                   <div style={{ fontFamily: "Lexend, sans-serif", fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Plotting...</div>
-                  {/* <div style={{ fontFamily: "Lexend, sans-serif", fontSize: '11px', color: '#94a3b8' }}>Calculating and plotting sun and earth line-of-sight vectors across given time</div> */}
                 </div>
               ) : timeProfileImage ? (
                 <img src={timeProfileImage} alt="Azimuth Profiles" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }} />
@@ -493,7 +515,6 @@ export default function LunarMap() {
               {loadingCritProfile ? (
                 <div style={{ textAlign: 'center', color: '#10b981' }}>
                   <div style={{ fontFamily: "Lexend, sans-serif", fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Plotting...</div>
-                  {/* <div style={{ fontFamily: "Lexend, sans-serif", fontSize: '11px', color: '#94a3b8' }}>Calculating and plotting </div> */}
                 </div>
               ) : critProfileImage ? (
                 <img src={critProfileImage} alt="Critical Angle Profiles" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }} />

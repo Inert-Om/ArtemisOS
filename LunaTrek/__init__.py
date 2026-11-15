@@ -234,7 +234,7 @@ def findOptimalDatesNShadowPercent(df):
     df['SPOV'] = df['STheta'] > df['SCritTheta']
     df['EPOV'] = df['ETheta'] > df['ECritTheta']
 
-    sunlight_ratio = df['SPOV'].sum() / len(df['SPOV'])
+    sunlight_ratio = df['SPOV'].sum() / len(df['SPOV']) if len(df['SPOV']) > 0 else 0.0
 
     df['solar_block'] = (df['SPOV'] != df['SPOV'].shift()).cumsum()
     windows = []
@@ -243,26 +243,31 @@ def findOptimalDatesNShadowPercent(df):
         if not group['SPOV'].iloc[0]:
             continue
 
-        starttime = datetime.fromisoformat(group['iso_utc_str'].iloc[0])
-        endtime = datetime.fromisoformat(group['iso_utc_str'].iloc[-1])
+        start_ts = pd.to_datetime(group['datetime_utc'].iloc[0])
+        end_ts = pd.to_datetime(group['datetime_utc'].iloc[-1])
+        
+        starttime_str = start_ts.isoformat()
+        endtime_str = end_ts.isoformat()
+        
         num_steps = len(group)
-        duration_s = endtime - starttime
+        # Convert Timedelta to total hours (float)
+        duration_hours = (end_ts - start_ts).total_seconds() / 3600.0
 
         earth_visible = group['EPOV'].sum()
         earth_visible_ratio = earth_visible / num_steps if num_steps > 0 else 0.0
 
-        composite_score = duration_s/3600 * (0.5 + (0.5 * earth_visible_ratio))
+        composite_score = duration_hours * (0.5 + (0.5 * earth_visible_ratio))
 
         windows.append({
-            'start_time': starttime,
-            'end_time': endtime,
-            'duration_s': duration_s/3600,
+            'start_time': starttime_str,
+            'end_time': endtime_str,
+            'duration_s': round(duration_hours, 2),
             'earth_comms_percentage': round(earth_visible_ratio * 100.0, 2),
-            'composite_score': composite_score,
+            'composite_score': round(composite_score, 2),
         })
 
     windows_df = pd.DataFrame(windows)
     if windows_df.empty:
-        return windows_df, 1.0
+        return windows_df, sunlight_ratio
     windows_df = windows_df.sort_values(by=['composite_score', 'duration_s'], ascending=False)
     return windows_df, sunlight_ratio
