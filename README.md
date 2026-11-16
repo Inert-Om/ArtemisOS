@@ -1,9 +1,8 @@
 # ArtemisOS: LunaTrek Engine
 
 **ArtemisOS** is an interactive Lunar South Pole navigation, telemetry, and landing site analysis platform built for the **NASA Space Apps Challenge 2026**. Powered by the **LunaTrek Engine**, it combines high-resolution Lunar Orbiter Laser Altimeter (LOLA) Digital Elevation Models (DEM) with NASA SPICE ephemeris kernels to identify optimal landing windows, terrain hazards, and illumination profiles across the lunar south pole ($-87^\circ\text{S}$ to $-90^\circ\text{S}$).
-Download unified or non unified .exe file from (releases)[https://github.com/Inert-Om/ArtemisOS/releases/latest]
 ---
-
+Download unified or non unified .exe file from (releases)[https://github.com/Inert-Om/ArtemisOS/releases/latest]
 ## Key Features
 
 * **Interactive Lunar South Pole Map**: High-resolution south polar stereographic projection map supporting smooth zoom, pan, click-to-inspect telemetry, and direct coordinate targeting ($-87^\circ\text{S}$ to $-90^\circ\text{S}$).
